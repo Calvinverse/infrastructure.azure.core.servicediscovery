@@ -41,6 +41,11 @@ variable "domain_consul" {
     description = "The name of the Consul DNS domain that all the resources are running in. Used as the domain of the Consul data center"
 }
 
+variable "encrypt_consul" {
+    description = "The Consul encrypt key"
+    type = string
+}
+
 variable "environment" {
     default = "test"
     description = "The name of the environment that all the resources are running in."

@@ -10,7 +10,7 @@ provider "azurerm" {
 
   subscription_id = var.subscription_production
 
-  version = "~>2.18.0"
+  version = "~>2.21.0"
 }
 
 provider "azurerm" {
@@ -20,7 +20,13 @@ provider "azurerm" {
 
     subscription_id = var.environment == "production" ? var.subscription_production : var.subscription_test
 
-    version = "~>2.18.0"
+    version = "~>2.21.0"
+}
+
+provider "azuread" {
+  version = "=0.11.0"
+
+  subscription_id = var.environment == "production" ? var.subscription_production : var.subscription_test
 }
 
 
@@ -116,11 +122,6 @@ data "azurerm_log_analytics_workspace" "log_analytics_workspace" {
   resource_group_name = "p-aue-tf-analytics-rg"
 }
 
-data "azurerm_virtual_network" "vnet" {
-  name = local.spoke_vnet
-  resource_group_name = local.spoke_resource_group
-}
-
 data "azurerm_subnet" "sn" {
   name = "${local.spoke_base_name}-sn"
   virtual_network_name = local.spoke_vnet
@@ -128,7 +129,7 @@ data "azurerm_subnet" "sn" {
 }
 
 data "azuread_group" "consul_server_discovery" {
-  name = "${spoke_base_name}-adg-consul-cloud-join"
+  name = "${local.spoke_base_name}-adg-consul-cloud-join"
 }
 
 
@@ -182,24 +183,27 @@ resource "azurerm_network_interface_security_group_association" "nic_nsg_consul_
 }
 
 resource "azurerm_linux_virtual_machine" "vm_consul_server" {
+    admin_password = var.admin_password
+    admin_username = local.admin_username
+
+    computer_name = "${local.name_prefix_tf}-${local.name_consul_server}-${count.index}"
+
     count = var.cluster_size
 
-    custom_data = templatefile(
+    custom_data = base64encode(templatefile(
         "${abspath(path.root)}/cloud_init_server.yaml",
         {
-          azure_subscription_id = var.environment == "production" ? var.subscription_production : var.subscription_test,
-          azure_tenant_id = '',
-          category = var.category,
-          datacenter = var.datacenter,
-          domain = var.domain_consul,
-          encrypt = '',
-          vnet_forward_ip = ''
-        })
+            category = var.category,
+            datacenter = var.datacenter,
+            domain = var.domain_consul,
+            encrypt = var.encrypt_consul,
+            vnet_forward_ip = cidrhost(data.azurerm_subnet.sn.address_prefixes[0], 1)
+        }))
 
-    delete_os_disk_on_termination = true
+    disable_password_authentication = false
 
     identity {
-        type = SystemAssigned
+        type = "SystemAssigned"
     }
 
     location = var.location
@@ -214,22 +218,11 @@ resource "azurerm_linux_virtual_machine" "vm_consul_server" {
         storage_account_type = "Premium_LRS"
     }
 
-    os_profile {
-        # The machines can deal with SSH certificates, but they are obtained via Vault
-        admin_password = var.admin_password
-        admin_username = local.admin_username
-        computer_name = "${local.name_prefix_tf}-${local.name_consul_server}-${count.index}"
-    }
-
-    os_profile_linux_config {
-        disable_password_authentication = false
-    }
-
     resource_group_name = azurerm_resource_group.rg.name
 
-    storage_image_reference {
-        id = data.azurerm_image.search_consul_server.id
-    }
+    size = "Standard_DS1_v2"
+
+    source_image_id = data.azurerm_image.search_consul_server.id
 
     tags = merge(
         local.common_tags,
@@ -239,15 +232,13 @@ resource "azurerm_linux_virtual_machine" "vm_consul_server" {
             "consul_node" = "server"
             "datacenter" = var.datacenter
         } )
-
-    vm_size = "Standard_DS1_v2"
 }
 
 resource "azuread_group_member" "consul_server_cluster_discovery" {
     count = var.cluster_size
 
     group_object_id = data.azuread_group.consul_server_discovery.id
-    member_object_id  = azurerm_virtual_machine.vm_consul_server[count.index].identity.0.principal_id
+    member_object_id  = azurerm_linux_virtual_machine.vm_consul_server[count.index].identity.0.principal_id
 }
 
 
@@ -274,7 +265,7 @@ resource "azurerm_network_interface" "nic_consul_ui" {
     }
 
     location = var.location
-    name = "${local.name_prefix_tf}-nic-consul-ui-${count.index}"
+    name = "${local.name_prefix_tf}-nic-consul-ui"
     resource_group_name = azurerm_resource_group.rg.name
 
     tags = merge( local.common_tags, local.extra_tags, var.tags )
@@ -286,24 +277,26 @@ resource "azurerm_network_interface_security_group_association" "nic_nsg_consul_
 }
 
 resource "azurerm_linux_virtual_machine" "vm_consul_ui" {
-    custom_data = templatefile(
+    # The machines can deal with SSH certificates, but they are obtained via Vault
+    admin_password = var.admin_password
+    admin_username = local.admin_username
+
+    computer_name = "${local.name_prefix_tf}-${local.name_consul_ui}"
+
+    custom_data = base64encode(templatefile(
         "${abspath(path.root)}/cloud_init_client.yaml",
         {
-            azure_subscription_id = var.environment == "production" ? var.subscription_production : var.subscription_test,
-            azure_tenant_id = '',
             category = var.category,
             datacenter = var.datacenter,
             domain = var.domain_consul,
-            encrypt = '',
-            vnet_forward_ip = ''
-        })
-
-    delete_os_disk_on_termination = true
+            encrypt = var.encrypt_consul,
+            vnet_forward_ip = cidrhost(data.azurerm_subnet.sn.address_prefixes[0], 1)
+        }))
 
     disable_password_authentication = false
 
     identity {
-        type = SystemAssigned
+        type = "SystemAssigned"
     }
 
     location = var.location
@@ -318,24 +311,11 @@ resource "azurerm_linux_virtual_machine" "vm_consul_ui" {
         storage_account_type = "Premium_LRS"
     }
 
-    os_profile {
-        # The machines can deal with SSH certificates, but they are obtained via Vault
-        admin_password = var.admin_password
-        admin_username = local.admin_username
-        computer_name = "${local.name_prefix_tf}-${local.name_consul_ui}"
-    }
-
-    os_profile_linux_config {
-        disable_password_authentication = false
-    }
-
     resource_group_name = azurerm_resource_group.rg.name
 
     size = "Standard_DS1_v2"
 
-    storage_image_reference {
-        id = data.azurerm_image.search_consul_ui.id
-    }
+    source_image_id = data.azurerm_image.search_consul_ui.id
 
     tags = merge(
         local.common_tags,
@@ -345,11 +325,9 @@ resource "azurerm_linux_virtual_machine" "vm_consul_ui" {
             "consul_node" = "client"
             "datacenter" = var.datacenter
         } )
-
-    vm_size = "Standard_DS1_v2"
 }
 
-resource "azuread_group_member" "consul_server_cluster_discovery" {
+resource "azuread_group_member" "consul_ui_cluster_discovery" {
     group_object_id = data.azuread_group.consul_server_discovery.id
-    member_object_id  = azurerm_virtual_machine.vm_consul_ui.identity.0.principal_id
+    member_object_id  = azurerm_linux_virtual_machine.vm_consul_ui.identity.0.principal_id
 }
