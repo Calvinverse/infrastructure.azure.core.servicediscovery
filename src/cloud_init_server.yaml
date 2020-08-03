@@ -19,7 +19,7 @@ write_files:
 - content: |
     {
       "retry_join": [
-        "provider=azure datacenter=${datacenter} category=${category} consul_node=server"
+        "provider=azure subscription_id=${subscription} tag_name=consul_server_id tag_value=${environment_id}"
       ]
     }
   path: /run/cloud-init/consul/client/consul_server_location.json

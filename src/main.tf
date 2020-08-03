@@ -173,7 +173,14 @@ resource "azurerm_network_interface" "nic_consul_server" {
     name = "${local.name_prefix_tf}-nic-consul-server-${count.index}"
     resource_group_name = azurerm_resource_group.rg.name
 
-    tags = merge( local.common_tags, local.extra_tags, var.tags )
+    tags = merge(
+        local.common_tags,
+        local.extra_tags,
+        var.tags,
+        {
+            "consul_server_id" = local.name_prefix_tf
+            "datacenter" = var.datacenter
+        } )
 }
 
 resource "azurerm_network_interface_security_group_association" "nic_nsg_consul_server" {
@@ -193,10 +200,11 @@ resource "azurerm_linux_virtual_machine" "vm_consul_server" {
     custom_data = base64encode(templatefile(
         "${abspath(path.root)}/cloud_init_server.yaml",
         {
-            category = var.category,
             datacenter = var.datacenter,
             domain = var.domain_consul,
             encrypt = var.encrypt_consul,
+            environment_id = local.name_prefix_tf,
+            subscription = var.environment == "production" ? var.subscription_production : var.subscription_test,
             vnet_forward_ip = cidrhost(data.azurerm_subnet.sn.address_prefixes[0], 1)
         }))
 
@@ -229,7 +237,6 @@ resource "azurerm_linux_virtual_machine" "vm_consul_server" {
         local.extra_tags,
         var.tags,
         {
-            "consul_node" = "server"
             "datacenter" = var.datacenter
         } )
 }
@@ -290,6 +297,7 @@ resource "azurerm_linux_virtual_machine" "vm_consul_ui" {
             datacenter = var.datacenter,
             domain = var.domain_consul,
             encrypt = var.encrypt_consul,
+            environment_id = local.name_prefix_tf,
             vnet_forward_ip = cidrhost(data.azurerm_subnet.sn.address_prefixes[0], 1)
         }))
 
@@ -322,7 +330,6 @@ resource "azurerm_linux_virtual_machine" "vm_consul_ui" {
         local.extra_tags,
         var.tags,
         {
-            "consul_node" = "client"
             "datacenter" = var.datacenter
         } )
 }
