@@ -200,6 +200,7 @@ resource "azurerm_linux_virtual_machine" "vm_consul_server" {
     custom_data = base64encode(templatefile(
         "${abspath(path.root)}/cloud_init_server.yaml",
         {
+            cluster_size = var.cluster_size,
             datacenter = var.datacenter,
             domain = var.domain_consul,
             encrypt = var.encrypt_consul,

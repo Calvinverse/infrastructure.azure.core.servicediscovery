@@ -22,7 +22,13 @@ write_files:
         "provider=azure subscription_id=${subscription} tag_name=consul_server_id tag_value=${environment_id}"
       ]
     }
-  path: /run/cloud-init/consul/client/consul_server_location.json
+  path: /run/cloud-init/consul/server/consul_server_location.json
+- content: |
+    {
+      "bootstrap_expect": ${cluster_size},
+      "server": true
+    }
+  path: /run/cloud-init/consul/server/consul_server_bootstrap.json
 - content: |
     #
     # See unbound.conf(5) man page, version 1.6.3.
