@@ -287,8 +287,7 @@ locals {
 # Locate the existing consul image
 data "azurerm_image" "search_consul_ui" {
     name = "resource-hashi-ui-${var.resource_version}"
-    provider = azurerm.production
-    resource_group_name = "p-aue-artefacts-rg"
+    resource_group_name = "t-aue-artefacts-rg"
 }
 
 resource "azurerm_network_interface" "nic_consul_ui" {
@@ -320,11 +319,11 @@ resource "azurerm_linux_virtual_machine" "vm_consul_ui" {
     custom_data = base64encode(templatefile(
         "${abspath(path.root)}/cloud_init_client.yaml",
         {
-            category = var.category,
             datacenter = var.datacenter,
             domain = var.domain_consul,
             encrypt = var.encrypt_consul,
             environment_id = local.name_prefix_tf,
+            subscription = var.environment == "production" ? var.subscription_production : var.subscription_test,
             vnet_forward_ip = cidrhost(data.azurerm_subnet.sn.address_prefixes[0], 1)
         }))
 
