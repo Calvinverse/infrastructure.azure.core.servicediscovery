@@ -144,6 +144,33 @@ resource "azurerm_resource_group" "rg" {
     tags = merge( local.common_tags, local.extra_tags, var.tags )
 }
 
+#
+# ROLES
+#
+
+resource "azurerm_role_definition" "consul_server_discovery" {
+    description = "A custom role that allows Consul nodes to discover the server nodes in their environment."
+    name = "${local.name_prefix_tf}-rd-consul-cloud-join"
+    scope = azurerm_resource_group.rg.id
+
+    permissions {
+        actions = [
+            "Microsoft.Network/networkInterfaces/read"
+        ]
+        not_actions = []
+    }
+
+    assignable_scopes = [
+        azurerm_resource_group.rg.id
+    ]
+}
+
+resource "azurerm_role_assignment" "consul_server_discovery" {
+    principal_id  = data.azuread_group.consul_server_discovery.id
+    role_definition_id = azurerm_role_definition.consul_server_discovery.id
+    scope = azurerm_resource_group.rg.id
+}
+
 
 #
 # CONSUL SERVER
@@ -156,8 +183,7 @@ locals {
 # Locate the existing consul image
 data "azurerm_image" "search_consul_server" {
     name = "resource-hashi-server-${var.resource_version}"
-    provider = azurerm.production
-    resource_group_name = "p-aue-artefacts-rg"
+    resource_group_name = "t-aue-artefacts-rg"
 }
 
 resource "azurerm_network_interface" "nic_consul_server" {
