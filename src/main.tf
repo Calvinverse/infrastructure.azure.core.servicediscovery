@@ -87,7 +87,7 @@ locals {
 # Name prefixes
 locals {
   name_prefix = "${local.environment_short}-${local.location_short}"
-  name_prefix_tf = "${local.name_prefix}-tf-${var.category}"
+  name_prefix_tf = "${local.name_prefix}-tf-${var.category}-${var.spoke_id}"
 }
 
 locals {
