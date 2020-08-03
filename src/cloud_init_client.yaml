@@ -8,7 +8,7 @@ write_files:
 - content: |
     {
       "datacenter": "${datacenter}",
-      "domain": "integrationtest"
+      "domain": "${domain}"
     }
   path: /run/cloud-init/consul/consul_region.json
 - content: |
