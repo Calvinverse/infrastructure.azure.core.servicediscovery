@@ -93,6 +93,7 @@ locals {
 locals {
   common_tags = {
     category    = "${var.category}"
+    datacenter  = "${var.datacenter}-${var.spoke_id}"
     environment = "${var.environment}"
     image_version = "${var.resource_version}"
     location    = "${var.location}"
@@ -131,6 +132,14 @@ data "azurerm_subnet" "sn" {
 data "azuread_group" "consul_server_discovery" {
   name = "${local.spoke_base_name}-adg-consul-cloud-join"
 }
+
+#
+# INFRASTRUCTURE SECRETS
+#
+
+# Consul encrypt
+
+# TLS certificates
 
 
 #
@@ -205,7 +214,6 @@ resource "azurerm_network_interface" "nic_consul_server" {
         var.tags,
         {
             "consul_server_id" = local.name_prefix_tf
-            "datacenter" = var.datacenter
         } )
 }
 
@@ -227,7 +235,10 @@ resource "azurerm_linux_virtual_machine" "vm_consul_server" {
         "${abspath(path.root)}/cloud_init_server.yaml",
         {
             cluster_size = var.cluster_size,
-            datacenter = var.datacenter,
+            consul_cert_bundle = filebase64("${var.consul_cert_path}/${var.domain_consul}-agent-ca.pem"),
+            consul_cert_crt = filebase64("${var.consul_cert_path}/${var.datacenter}-${var.spoke_id}-server-${var.domain_consul}-${count.index}.pem"),
+            consul_cert_key = filebase64("${var.consul_cert_path}/${var.datacenter}-${var.spoke_id}-server-${var.domain_consul}-${count.index}-key.pem"),
+            datacenter = "${var.datacenter}-${var.spoke_id}",
             domain = var.domain_consul,
             encrypt = var.encrypt_consul,
             environment_id = local.name_prefix_tf,
@@ -264,7 +275,6 @@ resource "azurerm_linux_virtual_machine" "vm_consul_server" {
         local.extra_tags,
         var.tags,
         {
-            "datacenter" = var.datacenter
         } )
 }
 
@@ -319,7 +329,8 @@ resource "azurerm_linux_virtual_machine" "vm_consul_ui" {
     custom_data = base64encode(templatefile(
         "${abspath(path.root)}/cloud_init_client.yaml",
         {
-            datacenter = var.datacenter,
+            consul_cert_bundle = filebase64("${var.consul_cert_path}/${var.domain_consul}-agent-ca.pem"),
+            datacenter = "${var.datacenter}-${var.spoke_id}",
             domain = var.domain_consul,
             encrypt = var.encrypt_consul,
             environment_id = local.name_prefix_tf,
@@ -356,7 +367,6 @@ resource "azurerm_linux_virtual_machine" "vm_consul_ui" {
         local.extra_tags,
         var.tags,
         {
-            "datacenter" = var.datacenter
         } )
 }
 

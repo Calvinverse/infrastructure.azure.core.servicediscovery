@@ -26,9 +26,31 @@ write_files:
 - content: |
     {
       "bootstrap_expect": ${cluster_size},
-      "server": true
+      "server": true,
+      "connect" : {
+        "enabled": true
+      }
     }
   path: /run/cloud-init/consul/server/consul_server_bootstrap.json
+- content: |
+    {
+      "connect" : {
+        "enabled": true,
+        "ca_provider": "consul"
+    }
+  path: /run/cloud-init/consul/server/consul_connect.json
+- content: |
+    ${consul_cert_key}
+  encoding: base64
+  path: /run/cloud-init/consul/certs/consul_cert.key
+- content: |
+    ${consul_cert_crt}
+  encoding: base64
+  path: /run/cloud-init/consul/certs/consul_cert.crt
+- content: |
+    ${consul_cert_bundle}
+  encoding: base64
+  path: /run/cloud-init/consul/certs/consul_cert_bundle.crt
 - content: |
     #
     # See unbound.conf(5) man page, version 1.6.3.
