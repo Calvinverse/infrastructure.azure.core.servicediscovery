@@ -3,13 +3,13 @@
 #
 
 variable "admin_password" {
-    description = "The password of the administrator user for the machines"
+    description = "The password of the administrator user for the machines."
     type = string
 }
 
 variable "cluster_size" {
     default = "3"
-    description = "The size of the cluster"
+    description = "The size of the cluster."
 }
 
 variable "resource_version" {
@@ -33,21 +33,21 @@ variable "consul_cert_path" {
 
 variable "datacenter" {
     default = "calvinverse"
-    description = "The name of the environment that all the resources are running in. Used as the name of the Consul data center"
+    description = "The name of the environment that all the resources are running in. Used as the name of the Consul data center."
 }
 
 variable "domain" {
     default = "consulverse"
-    description = "The name of the DNS domain that all the resources are running in. Used to resolve the static resources, e.g. Consul servers"
+    description = "The name of the DNS domain that all the resources are running in. Used to resolve the static resources, e.g. Consul servers."
 }
 
 variable "domain_consul" {
     default = "consulverse"
-    description = "The name of the Consul DNS domain that all the resources are running in. Used as the domain of the Consul data center"
+    description = "The name of the Consul DNS domain that all the resources are running in. Used as the domain of the Consul data center."
 }
 
 variable "encrypt_consul" {
-    description = "The Consul encrypt key"
+    description = "The Consul encrypt key."
     type = string
 }
 
