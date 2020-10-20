@@ -1,7 +1,5 @@
 # infrastructure.azure.core.servicediscovery
 
-Defines the configuration for the creation of a Consul service discovery cluster
-
 The `infrastructure.azure.core.servicediscovery` repository stores the resource configuration files for
 [Terraform](https://www.terraform.io/) to deploy a
 [resource group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/overview#terminology) containing a [Consul](https://consul.io) service discovery cluster to an Azure subscription. The
@@ -60,7 +58,8 @@ Additional tags can be added by setting the `tags` variable as defined in the `v
 * **cluster_size** - The size of the cluster. Defaults to 3.
 * **resource_version** - The version of the [service discovery image](https://github.com/Calvinverse/resource.hashi.server). It is expected that this image is stored in a resource group as an Azure image. Currently the name of this resource group is encoded in the `main.tf` configuration file.
 * **category** - The name of the category that all the resources are running in. Defaults to `cv-core-sd`.
-* **datacenter** - The name of the environment that all the resources are running in. Used as the name of the Consul data center. Defaults to `calvinverse-test`.
+* **consul_cert_path** - The path to the directory in which the consul certificates are placed.
+* **datacenter** - The name of the environment that all the resources are running in. Used as the name of the Consul data center. Defaults to `calvinverse`.
 * **domain** - The name of the DNS domain that all the resources are running in. Used to resolve the static resources, e.g. Consul servers. Defaults to `consulverse`.
 * **domain_consul** - The name of the Consul DNS domain that all the resources are running in. Used as the domain of the Consul data center. Defaults to `consulverse`
 * **encrypt_consul** - The Consul encrypt key.
@@ -81,7 +80,7 @@ In order to run the Terraform configuration in this repository you need to have 
 
 Once you are signed in run the Terraform [plan](https://www.terraform.io/docs/commands/plan.html) command to preview the changes that will be made.
 
-    tf plan -var subscription_production=<SUBSCRIPTION_ID> -var subscription_test=<SUBSCRIPTION_ID> -var meta_source=<GIT_COMMIT_HASH> -var meta_version=<VERSION> -out ./build/tf/plan
+    tf plan -var subscription_production=<SUBSCRIPTION_ID> -var subscription_test=<SUBSCRIPTION_ID> -var meta_source=<GIT_COMMIT_HASH> -var meta_version=<VERSION> -var consul_cert_path=<LOCAL_MACHINE_PATH_TO_CERT_DIR> -var encrypt_consul=<CONSUL_ENCRYPT_KEY> -out ./build/tf/plan
 
 When you are happy with the plan execute the plan with the Terraform [apply](https://www.terraform.io/docs/commands/apply.html) command.
 
